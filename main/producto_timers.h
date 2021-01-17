@@ -1,6 +1,5 @@
-#include <stdio.h>
-#include "esp_types.h"
-#include "freertos/FreeRTOS.h"
+#ifndef _PRODUCTO_TIMERS_H_
+#define _PRODUCTO_TIMERS_H_
 
 /*
  * A sample structure to pass events
@@ -14,3 +13,5 @@ typedef struct {
 } timer_event_t;
 
 void init_and_start_timers(void);
+
+#endif /* _PRODUCTO_TIMERS_H_ */

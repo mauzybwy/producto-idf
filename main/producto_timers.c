@@ -7,6 +7,7 @@
 #include "driver/timer.h"
 
 #include "producto_timers.h"
+#include "producto_buttons.h"
 
 #define TIMER_DIVIDER         (16) /*  Hardware timer clock divider */
 #define TIMER_SCALE           (TIMER_BASE_CLK / TIMER_DIVIDER) /* convert counter value to seconds */
@@ -31,7 +32,8 @@ static void timer_evt_task(void *arg)
 	/* Dipatch button checking */
 	if (evt.type == CHECK_BUTTONS)
 	{
-            printf("\n    Check them buttons\n");
+            /* printf("\n    Check them buttons\n"); */
+	    xTaskNotifyGive(check_buttons_task_handle);
         }
 
 	/* Dispatch example timer */
