@@ -6,8 +6,11 @@
 #include "driver/periph_ctrl.h"
 #include "driver/timer.h"
 
+#include "producto.h"
 #include "producto_timers.h"
 #include "producto_buttons.h"
+#include "producto_display.h"
+#include "producto_activities.h"
 
 #define TIMER_DIVIDER         (16) /*  Hardware timer clock divider */
 #define TIMER_SCALE           (TIMER_BASE_CLK / TIMER_DIVIDER) /* convert counter value to seconds */
@@ -17,7 +20,9 @@
 #define CHECK_BUTTONS         (0U)  /* time to poll the buttons */
 #define TEST_WITH_RELOAD      (1U)  /* testing will be done with auto reload */
 
-xQueueHandle timer_group0_queue;
+extern producto_t producto;
+
+static xQueueHandle timer_group0_queue;
 
 /*
  * Dispatch timer events
@@ -50,6 +55,15 @@ static void timer_evt_task(void *arg)
     }
 }
 
+static void second_ticker_callback(void* arg)
+{
+    static activity_evt_t activity_evt;
+    activity_evt.type = ACTIVITY_EVT_SECOND_TICK;
+    
+    xQueueSend(producto.activity_evt_queue, &activity_evt, (TickType_t) 0);
+    
+}
+
 /*
  * Timer group0 ISR handler
  *
@@ -70,7 +84,7 @@ void IRAM_ATTR timer_group0_isr(void *para)
 
     /* Prepare basic event data
        that will be then sent back to the main program task */
-    timer_event_t evt;
+    static timer_event_t evt;
     evt.timer_group = 0;
     evt.timer_idx = timer_idx;
     evt.timer_counter_value = timer_counter_value;
@@ -142,6 +156,19 @@ void init_and_start_timers(void)
     timer_group0_queue = xQueueCreate(10, sizeof(timer_event_t));
     timer_group0_init(TIMER_0, CHECK_BUTTONS, TIMER_INTERVAL0_SEC);
     timer_group0_init(TIMER_1, TEST_WITH_RELOAD, TIMER_INTERVAL1_SEC);
+
+    /* Second-tick */
+    const esp_timer_create_args_t second_ticker_args = {
+	.callback = &second_ticker_callback,
+	.name = "second_ticker"
+    };
+    
+    esp_timer_handle_t second_ticker;
+    ESP_ERROR_CHECK(esp_timer_create(&second_ticker_args, &second_ticker));
+
+
+    /* Start the timers */
+    ESP_ERROR_CHECK(esp_timer_start_periodic(second_ticker, 1000000));
 
     /* Timer Event Task */
     xTaskCreate(timer_evt_task, "timer_evt_task", 2048, NULL, 5, NULL);

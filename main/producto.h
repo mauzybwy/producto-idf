@@ -1,26 +1,39 @@
 #ifndef _PRODUCTO_H_
 #define _PRODUCTO_H_
 
+#include "freertos/queue.h"
 #include "producto_buttons.h"
+#include "producto_activities.h"
 
-#define PRODUCTO_TASK_0_BTN 32
-#define PRODUCTO_TASK_1_BTN 17
-#define PRODUCTO_TASK_2_BTN 2
-#define PRODUCTO_TASK_3_BTN 15
-#define PRODUCTO_TASK_4_BTN 13
-#define PRODUCTO_TASK_5_BTN 12
+#define PRODUCTO_ACTY_0_BTN 32
+#define PRODUCTO_ACTY_1_BTN 17
+#define PRODUCTO_ACTY_2_BTN 2
+#define PRODUCTO_ACTY_3_BTN 15
+#define PRODUCTO_ACTY_4_BTN 13
+#define PRODUCTO_ACTY_5_BTN 12
 
-#define PRODUCTO_NUM_TIMERS (6U)
-#define PRODUCTO_NUM_SPECIAL_BTNS (0U)
-#define PRODUCTO_NUM_BUTTONS (PRODUCTO_NUM_TIMERS + PRODUCTO_NUM_SPECIAL_BTNS)
+#define PRODUCTO_PAUSE_BTN  0
+#define PRODUCTO_LIST_BTN   35
 
-typedef struct {
-    char name[32];
-} producto_timer_t;
+#define PRODUCTO_NUM_ACTIVITY (6U)
+#define PRODUCTO_NUM_SPECIAL_BTNS (2U)
+#define PRODUCTO_NUM_BUTTONS (PRODUCTO_NUM_ACTIVITY + PRODUCTO_NUM_SPECIAL_BTNS)
 
+#define PRODUCTO_ACTIVITY_PAUSED  (0U)
+#define PRODUCTO_ACTIVITY_RUNNING (1U)
+
+#define PRODUCTO_BUTTON_TYPE_ACTIVITY (0U)
+#define PRODUCTO_BUTTON_TYPE_PAUSE    (1U)
+#define PRODUCTO_BUTTON_TYPE_LIST     (2U)
+
+#pragma pack(1)
 typedef struct {
     button_t buttons[PRODUCTO_NUM_BUTTONS];
-    producto_timer_t timers[PRODUCTO_NUM_TIMERS];
+    producto_activity_t activities[PRODUCTO_NUM_BUTTONS];
+    xQueueHandle display_evt_queue;
+    xQueueHandle button_evt_queue;
+    xQueueHandle activity_evt_queue;
+    uint8_t current_activity;
 } producto_t;
 
 producto_t producto;

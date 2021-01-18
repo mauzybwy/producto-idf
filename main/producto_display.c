@@ -12,25 +12,53 @@
 #include "producto_display.h"
 
 extern producto_t producto;
-extern xQueueHandle button_queue;
 
 static void tft_init(void);
 static void display_task(void *arg);
 
-static char tmp_buff[64];
+static void update_activity(producto_activity_t activity)
+{
+    TFT_fillRect(0,0,240,135/2, TFT_BLACK);
+    TFT_print(activity.name, 0, 0);
+}
+
+static void update_time(producto_activity_t activity)
+{
+    uint8_t hr = activity.seconds / 3600 % 24;
+    uint8_t min = activity.seconds / 60 % 60;
+    uint8_t sec = activity.seconds % 60;
+    
+    char time_str[10];
+    sprintf(time_str, "\r%02d:%02d:%02d", hr, min, sec);
+    /* TFT_fillRect(0,135/2,240,135/2, TFT_BLACK); */
+    TFT_print(time_str, 0, 135/2);
+}
 
 static void display_task(void *arg)
 {
-    button_t button;
+    producto_activity_t activity;
+    display_evt_t display_evt;
     
     while(1)
     {
-	xQueueReceive(button_queue, &button, portMAX_DELAY);
-	printf("BUTTON: %s\n", producto.timers[button.id].name);
+	xQueueReceive(producto.display_evt_queue, &display_evt, portMAX_DELAY);
 
-	TFT_fillScreen(TFT_BLACK);
-	sprintf(tmp_buff, "%s", producto.timers[button.id].name);
-	TFT_print(tmp_buff, CENTER, CENTER);
+	activity = producto.activities[producto.current_activity];
+
+	switch (display_evt.type)
+	{
+	case DISPLAY_EVT_UPDATE_TIMER:
+	    update_time(activity);
+	    break;
+
+	case DISPLAY_EVT_UPDATE_ACTIVITY:
+	    update_activity(activity);
+	    update_time(activity);
+	    break;
+
+	default:
+	    break;
+	}
     }
 }
 

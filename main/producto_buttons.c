@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 #include "esp_types.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -6,6 +7,7 @@
 #include "freertos/queue.h"
 
 #include "producto.h"
+#include "producto_activities.h"
 #include "producto_buttons.h"
 
 extern producto_t producto;
@@ -15,7 +17,6 @@ static void check_buttons(void);
 static bool debounce_button(button_t *button);
 
 TaskHandle_t check_buttons_task_handle = NULL;
-xQueueHandle button_queue;
 
 static bool debounce_button(button_t *button)
 {
@@ -46,9 +47,11 @@ static bool debounce_button(button_t *button)
 
 static void check_buttons(void)
 {
+    activity_evt_t activity_evt;
+    button_evt_t button_evt;
     button_t *button;
     
-    for ( uint8_t i = 0; i < PRODUCTO_NUM_TIMERS; i++ )
+    for ( uint8_t i = 0; i < PRODUCTO_NUM_BUTTONS; i++ )
     {
 	button = &producto.buttons[i];
 	
@@ -57,7 +60,13 @@ static void check_buttons(void)
 	    	|| ( button->level == 0 && button->edge_type == BUTTON_EDGE_NEG )
 	    	|| ( button->level == 1 && button->edge_type == BUTTON_EDGE_POS ))
 	    ) {
-	    xQueueSend( button_queue, button, (TickType_t) 0 );
+	    
+	    button_evt.button = *button;
+	    button_evt.type = BUTTON_EVT_CLICK;
+	    
+	    activity_evt.type = ACTIVITY_EVT_BUTTON_PRESSED;
+	    memcpy(activity_evt.data, &button_evt, sizeof(button_evt));
+	    xQueueSend( producto.activity_evt_queue, &activity_evt, (TickType_t) 0 );
 	}
     }
 }
@@ -75,10 +84,12 @@ void buttons_init(void)
 {
     uint64_t gpio_mask = 0;
     
-    for ( uint8_t i = 0; i < PRODUCTO_NUM_TIMERS; i++ )
+    for ( uint8_t i = 0; i < PRODUCTO_NUM_BUTTONS; i++ )
     {
 	gpio_mask |= (1ULL << producto.buttons[i].gpio);
     }
+
+    printf("\nGPIO: 0x%llx\n", gpio_mask);
     
     /* GPIO Configuration */
     gpio_config_t io_conf;
@@ -88,8 +99,6 @@ void buttons_init(void)
     io_conf.pull_down_en = 0;
     io_conf.pull_up_en = 1;
     gpio_config(&io_conf);
-
-    button_queue = xQueueCreate(10, sizeof(button_t));
     
     xTaskCreate(check_buttons_task, "check_buttons_task", 2048, NULL, 5, &check_buttons_task_handle);
 }
