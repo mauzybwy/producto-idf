@@ -26,17 +26,35 @@
 #define PRODUCTO_BUTTON_TYPE_PAUSE    (1U)
 #define PRODUCTO_BUTTON_TYPE_LIST     (2U)
 
+#define PRODUCTO_LOG_MAX_LINE_LENGTH (32U)
+#define PRODUCTO_LOG_MAX_ENTRIES     (64U)
+
+#define PRODUCTO_SCREEN_LOG      (0U)
+#define PRODUCTO_SCREEN_ACTIVITY (1U)
+#define PRODUCTO_SCREEN_LIST     (2U)
+
 #pragma pack(1)
 typedef struct {
+    char buf[PRODUCTO_LOG_MAX_ENTRIES][PRODUCTO_LOG_MAX_LINE_LENGTH];
+    uint8_t first;
+    uint8_t last;
+    uint8_t buflen;
+} producto_log_buffer_t;
+
+#pragma pack(1)
+typedef struct {
+    producto_log_buffer_t log_buffer;
     button_t buttons[PRODUCTO_NUM_BUTTONS];
     producto_activity_t activities[PRODUCTO_NUM_BUTTONS];
     xQueueHandle display_evt_queue;
     xQueueHandle button_evt_queue;
     xQueueHandle activity_evt_queue;
     uint8_t current_activity;
-    bool  hide_activity;
+    uint8_t current_screen;
 } producto_t;
 
 producto_t producto;
+
+void producto_log(char *log);
 
 #endif /* _PRODUCTO_H_ */

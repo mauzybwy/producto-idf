@@ -9,6 +9,7 @@ xQueueHandle display_evt_queue;
 #define DISPLAY_EVT_UPDATE_TIMER    (0U)
 #define DISPLAY_EVT_UPDATE_ACTIVITY (1U)
 #define DISPLAY_EVT_LIST_ACTIVITIES (2U)
+#define DISPLAY_EVT_LOG             (3U)
 
 #pragma pack(1)
 typedef struct {

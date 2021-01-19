@@ -1,3 +1,4 @@
+#include <string.h>
 #include <stdio.h>
 #include "esp_types.h"
 #include "freertos/FreeRTOS.h"
@@ -38,6 +39,68 @@ static void update_time()
     TFT_print(time_str, 0, 135/2);
 }
 
+static void display_log_tail(int num, char *outbuf)
+{
+    producto_log_buffer_t *log_buffer = &producto.log_buffer;
+    uint8_t valid_num = 0, before_wrap = 0, after_wrap = 0, zero_val = 0;
+    char *outbuf_ptr = outbuf;
+
+    /* Circular buffer has not wrapped */
+    if (log_buffer->last > log_buffer->first)
+    {
+	valid_num = (( log_buffer->last - log_buffer->first ) >= num )
+	    ? num
+	    : log_buffer->last - log_buffer->first;
+
+	for(int i = log_buffer->last - valid_num; i < log_buffer->last; i++)
+	{
+	    outbuf_ptr += sprintf(outbuf_ptr, "%s\n", log_buffer->buf[i]);
+	}
+    }
+
+    /* Circular buffer has wrapped */
+    else if (log_buffer->last < log_buffer->first)
+    {
+	/* Tail doesn't read over wrap bounds */
+	if (log_buffer->last >= num)
+	{
+	    after_wrap = log_buffer->last;
+	    before_wrap = log_buffer->buflen;
+	    zero_val = after_wrap - num;
+	}
+
+	/* Tail reads over wrap bounds */
+	else
+	{
+	    after_wrap = log_buffer->last;
+	    before_wrap = log_buffer->buflen - (num - after_wrap);
+	    zero_val = 0;
+	}
+
+	/* Print first side of the wrap */
+	for (int i = before_wrap; i < log_buffer->buflen; i++)
+	{
+	    outbuf_ptr += sprintf(outbuf_ptr, "%s\n", log_buffer->buf[i]);
+	}
+
+	/* Print other side of the wrap */
+	for (int i = zero_val; i < after_wrap; i++)
+	{
+	    outbuf_ptr += sprintf(outbuf_ptr, "%s\n", log_buffer->buf[i]);
+	}
+    }
+
+    /* Circular buffer empty */
+    else
+    {
+	
+    }
+
+    TFT_fillScreen(TFT_BLACK);
+    TFT_print(outbuf, 0, 0);
+}
+
+
 static void list_activities()
 {
     TFT_fillScreen(TFT_BLACK);
@@ -47,6 +110,7 @@ static void list_activities()
 static void display_task(void *arg)
 {
     display_evt_t display_evt;
+    static char local_log_buf[10 * PRODUCTO_LOG_MAX_LINE_LENGTH];
     
     while(1)
     {
@@ -65,6 +129,10 @@ static void display_task(void *arg)
 
 	case DISPLAY_EVT_LIST_ACTIVITIES:
 	    list_activities();
+	    break;
+
+	case DISPLAY_EVT_LOG:
+	    display_log_tail(10, local_log_buf);
 	    break;
 	    
 	default:

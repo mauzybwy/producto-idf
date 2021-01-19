@@ -14,6 +14,7 @@
 #include "lwip/err.h"
 #include "lwip/sys.h"
 
+#include "producto.h"
 #include "producto_wifi.h"
 
 /* The examples use WiFi configuration that you can set via project configuration menu
@@ -119,9 +120,11 @@ void wifi_init_sta(void)
     if (bits & WIFI_CONNECTED_BIT) {
         ESP_LOGI(TAG, "connected to ap SSID:%s password:%s",
                  EXAMPLE_ESP_WIFI_SSID, EXAMPLE_ESP_WIFI_PASS);
+	producto_log("WIFI CONNECTED!");
     } else if (bits & WIFI_FAIL_BIT) {
         ESP_LOGI(TAG, "Failed to connect to SSID:%s, password:%s",
                  EXAMPLE_ESP_WIFI_SSID, EXAMPLE_ESP_WIFI_PASS);
+	producto_log("WIFI CONNECT FAILED!");
     } else {
         ESP_LOGE(TAG, "UNEXPECTED EVENT");
     }
