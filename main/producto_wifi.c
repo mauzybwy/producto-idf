@@ -7,6 +7,7 @@
 #include "freertos/event_groups.h"
 #include "esp_system.h"
 #include "esp_wifi.h"
+#include "esp_sntp.h"
 #include "esp_event.h"
 #include "esp_log.h"
 #include "nvs_flash.h"
@@ -135,6 +136,48 @@ void wifi_init_sta(void)
     vEventGroupDelete(s_wifi_event_group);
 }
 
+static void initialize_sntp(void)
+{
+    ESP_LOGI(TAG, "Initializing SNTP");
+    sntp_setoperatingmode(SNTP_OPMODE_POLL);
+    sntp_setservername(0, "pool.ntp.org");
+    sntp_init();
+}
+
+//--------------------------
+static int obtain_time(void)
+{
+    struct tm* tm_info;
+    time_t time_now;
+    int res = 1;
+
+    initialize_sntp();
+
+    // wait for time to be set
+    int retry = 0;
+    const int retry_count = 20;
+
+    time(&time_now);
+    tm_info = localtime(&time_now);
+
+    while(tm_info->tm_year < (2016 - 1900) && ++retry < retry_count) {
+        //ESP_LOGI(tag, "Waiting for system time to be set... (%d/%d)", retry, retry_count);
+	printf("Wait %0d/%d", retry, retry_count);
+	vTaskDelay(500 / portTICK_RATE_MS);
+        time(&time_now);
+    	tm_info = localtime(&time_now);
+    }
+    if (tm_info->tm_year < (2016 - 1900)) {
+    	ESP_LOGI(TAG, "System time NOT set.");
+    	res = 0;
+    }
+    else {
+    	ESP_LOGI(TAG, "System time is set.");
+    }
+
+    return res;
+}
+
 void wifi_init(void)
 {
     //Initialize NVS
@@ -147,4 +190,6 @@ void wifi_init(void)
 
     ESP_LOGI(TAG, "ESP_WIFI_MODE_STA");
     wifi_init_sta();
+
+    obtain_time();
 }

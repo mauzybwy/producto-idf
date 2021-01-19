@@ -1,6 +1,7 @@
 #ifndef _PRODUCTO_H_
 #define _PRODUCTO_H_
 
+#include <time.h>
 #include "freertos/queue.h"
 #include "producto_buttons.h"
 #include "producto_activities.h"
@@ -51,6 +52,7 @@ typedef struct {
     xQueueHandle activity_evt_queue;
     uint8_t current_activity;
     uint8_t current_screen;
+    time_t start_time;
 } producto_t;
 
 producto_t producto;

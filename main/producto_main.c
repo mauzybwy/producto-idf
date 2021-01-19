@@ -14,6 +14,7 @@
 #include "producto_buttons.h"
 #include "producto_timers.h"
 #include "producto_display.h"
+#include "producto_firebase.h"
 #include "producto_activities.h"
 
 producto_t producto = {
@@ -134,7 +135,8 @@ producto_t producto = {
 	.first = 0,
 	.last = 0,
 	.buflen = PRODUCTO_LOG_MAX_ENTRIES,
-    }
+    },
+    .start_time = (time_t)(-1),
 };
 
 void producto_log(char *log)
@@ -159,6 +161,43 @@ void producto_log(char *log)
     }
 }
 
+static void set_timers_from_firebase(void)
+{
+    cJSON *timers_root = NULL, *current_element = NULL;;
+    timers_root = firebase_read("timers");
+
+    for (int i = 0 ; i < cJSON_GetArraySize(timers_root) ; i++)
+    {
+	current_element = cJSON_GetArrayItem(timers_root, i);
+	if (cJSON_IsString(current_element)) {
+	    strcpy(producto.activities[i].name, current_element->valuestring);
+	    printf("%s\n", current_element->valuestring);
+	}
+    }
+
+    cJSON_Delete(timers_root);
+}
+
+void update_session_in_firebase(void)
+{
+    cJSON *timers_root = cJSON_CreateObject();
+    cJSON_AddStringToObject(timers_root, "1", "poop");
+    
+    firebase_write("timers", timers_root);
+    
+    cJSON_Delete(timers_root);
+}
+
+void set_start_time(void)
+{
+    setenv("TZ", "GMT+5", 1);
+    tzset();
+    time(&producto.start_time);
+    struct tm * timeinfo;
+    timeinfo = localtime ( &producto.start_time );
+    printf ( "Current local time and date: %s", asctime (timeinfo) );
+}
+
 
 #define MAX_HTTP_OUTPUT_BUFFER 2048
 void app_main(void)
@@ -171,9 +210,11 @@ void app_main(void)
     producto_log("Initializing wifi...");
     wifi_init();
 
+    set_start_time();
+
     producto_log("Connecting to firebase...");
-    static char local_response_buffer[MAX_HTTP_OUTPUT_BUFFER] = {0};
-    http_get("https://producto-1cba1-default-rtdb.firebaseio.com/timers.json", local_response_buffer);
+    update_session_in_firebase();
+    set_timers_from_firebase();
 
     producto_log("Initializing GPIO...");
     buttons_init();

@@ -119,8 +119,34 @@ void http_get(char* url, char *response_buffer)
     }
     /* ESP_LOG_BUFFER_HEX(TAG, response_buffer, strlen(response_buffer)); */
     printf("%s\n", response_buffer);
-    
+}
 
+void http_patch(char *url, char *patch_data)
+{
+    esp_http_client_config_t config = {
+	.url = url,
+        .event_handler = _http_event_handler,
+        .user_data = NULL,        // Pass address of local buffer to get response
+        .disable_auto_redirect = true,
+	.method = HTTP_METHOD_PATCH,
+    };
+    esp_http_client_handle_t client = esp_http_client_init(&config);
+    
+    
+    /* esp_http_client_set_method(client, HTTP_METHOD_PATCH); */
+    /* esp_http_client_set_header(client, "Content-Type", "application/json"); */
+    esp_http_client_set_post_field(client, patch_data, strlen(patch_data));
+
+    esp_err_t err = esp_http_client_perform(client);
+    err = esp_http_client_perform(client);
+    
+    if (err == ESP_OK) {
+        ESP_LOGI(TAG, "HTTP POST Status = %d, content_length = %d",
+                esp_http_client_get_status_code(client),
+                esp_http_client_get_content_length(client));
+    } else {
+        ESP_LOGE(TAG, "HTTP POST request failed: %s", esp_err_to_name(err));
+    }
 }
 
 /* void http_init(void) */
