@@ -16,14 +16,18 @@ extern producto_t producto;
 static void tft_init(void);
 static void display_task(void *arg);
 
-static void update_activity(producto_activity_t activity)
+static void update_activity()
 {
+    producto_activity_t activity = producto.activities[producto.current_activity];
+    
     TFT_fillRect(0,0,240,135/2, TFT_BLACK);
     TFT_print(activity.name, 0, 0);
 }
 
-static void update_time(producto_activity_t activity)
+static void update_time()
 {
+    producto_activity_t activity = producto.activities[producto.current_activity];
+    
     uint8_t hr = activity.seconds / 3600 % 24;
     uint8_t min = activity.seconds / 60 % 60;
     uint8_t sec = activity.seconds % 60;
@@ -34,28 +38,35 @@ static void update_time(producto_activity_t activity)
     TFT_print(time_str, 0, 135/2);
 }
 
+static void list_activities()
+{
+    TFT_fillScreen(TFT_BLACK);
+    TFT_print("LIST", CENTER, CENTER);
+}
+
 static void display_task(void *arg)
 {
-    producto_activity_t activity;
     display_evt_t display_evt;
     
     while(1)
     {
 	xQueueReceive(producto.display_evt_queue, &display_evt, portMAX_DELAY);
 
-	activity = producto.activities[producto.current_activity];
-
 	switch (display_evt.type)
 	{
 	case DISPLAY_EVT_UPDATE_TIMER:
-	    update_time(activity);
+	    update_time();
 	    break;
 
 	case DISPLAY_EVT_UPDATE_ACTIVITY:
-	    update_activity(activity);
-	    update_time(activity);
+	    update_activity();
+	    update_time();
 	    break;
 
+	case DISPLAY_EVT_LIST_ACTIVITIES:
+	    list_activities();
+	    break;
+	    
 	default:
 	    break;
 	}

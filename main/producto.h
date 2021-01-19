@@ -34,6 +34,7 @@ typedef struct {
     xQueueHandle button_evt_queue;
     xQueueHandle activity_evt_queue;
     uint8_t current_activity;
+    bool  hide_activity;
 } producto_t;
 
 producto_t producto;

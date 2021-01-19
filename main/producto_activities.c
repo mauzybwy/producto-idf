@@ -34,6 +34,7 @@ static void handle_button_press(button_evt_t button_evt)
 	    producto.current_activity = button_evt.button.id;
 	    activity = &producto.activities[producto.current_activity];
 	    activity->status = PRODUCTO_ACTIVITY_RUNNING;
+	    producto.hide_activity = false;
 	    display_evt.type = DISPLAY_EVT_UPDATE_ACTIVITY;
 	    xQueueSend(producto.display_evt_queue, &display_evt, (TickType_t) 0);
 	}
@@ -47,6 +48,19 @@ static void handle_button_press(button_evt_t button_evt)
 	break;
 
     case PRODUCTO_BUTTON_TYPE_LIST:
+	if (!producto.hide_activity)
+	{
+	    producto.hide_activity = true;
+	    display_evt.type = DISPLAY_EVT_LIST_ACTIVITIES;
+	    xQueueSend(producto.display_evt_queue, &display_evt, (TickType_t) 0);
+	}
+
+	else
+	{
+	    producto.hide_activity = false;
+	    display_evt.type = DISPLAY_EVT_UPDATE_ACTIVITY;
+	    xQueueSend(producto.display_evt_queue, &display_evt, (TickType_t) 0);
+	}
 	break;
     }
 }
@@ -60,8 +74,12 @@ static void handle_second_tick(void)
     if(activity->status == PRODUCTO_ACTIVITY_RUNNING)
     {
 	activity->seconds++;
-	display_evt.type = DISPLAY_EVT_UPDATE_TIMER;
-	xQueueSend(producto.display_evt_queue, &display_evt, (TickType_t) 0);
+
+	if(!producto.hide_activity)
+	{
+	    display_evt.type = DISPLAY_EVT_UPDATE_TIMER;
+	    xQueueSend(producto.display_evt_queue, &display_evt, (TickType_t) 0);
+	}
     }
 }
 
