@@ -19,6 +19,7 @@
 
 #define CHECK_BUTTONS         (0U)  /* time to poll the buttons */
 #define TEST_WITH_RELOAD      (1U)  /* testing will be done with auto reload */
+#define UPDATE_FIREBASE_TASKS (3U)  /* update the tasks in firebase */
 
 extern producto_t producto;
 
@@ -59,6 +60,15 @@ static void second_ticker_callback(void* arg)
 {
     static activity_evt_t activity_evt;
     activity_evt.type = ACTIVITY_EVT_SECOND_TICK;
+    
+    xQueueSend(producto.activity_evt_queue, &activity_evt, (TickType_t) 0);
+    
+}
+
+static void update_firebase_callback(void* arg)
+{
+    static activity_evt_t activity_evt;
+    activity_evt.type = ACTIVITY_EVT_UPDATE_FIREBASE;
     
     xQueueSend(producto.activity_evt_queue, &activity_evt, (TickType_t) 0);
     
@@ -162,13 +172,22 @@ void init_and_start_timers(void)
 	.callback = &second_ticker_callback,
 	.name = "second_ticker"
     };
-    
+
     esp_timer_handle_t second_ticker;
     ESP_ERROR_CHECK(esp_timer_create(&second_ticker_args, &second_ticker));
 
+    /* Update Firebase Tasks */
+    const esp_timer_create_args_t update_firebase_args = {
+	.callback = &update_firebase_callback,
+	.name = "update_firebase"
+    };
+
+    esp_timer_handle_t update_firebase;
+    ESP_ERROR_CHECK(esp_timer_create(&update_firebase_args, &update_firebase));
 
     /* Start the timers */
     ESP_ERROR_CHECK(esp_timer_start_periodic(second_ticker, 1000000));
+    ESP_ERROR_CHECK(esp_timer_start_periodic(update_firebase, 60000000));
 
     /* Timer Event Task */
     xTaskCreate(timer_evt_task, "timer_evt_task", 2048, NULL, 5, NULL);

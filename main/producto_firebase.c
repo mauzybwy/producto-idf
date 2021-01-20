@@ -16,17 +16,21 @@
 
 #define MAX_HTTP_OUTPUT_BUFFER 2048
 
+static char urlbuf[64] = {0};
 
 void firebase_write(char *path, cJSON *json_root)
 {
-    char *post_data = cJSON_Print(json_root);
-    http_patch("https://producto-1cba1-default-rtdb.firebaseio.com/timers.json", post_data);
-    free(post_data);
+    char *patch_data = cJSON_Print(json_root);
+    sprintf(urlbuf, "https://producto-1cba1-default-rtdb.firebaseio.com/%s.json", path);
+
+    printf("%s", patch_data);
+    
+    http_patch(urlbuf, patch_data);
+    free(patch_data);
 }
 
 cJSON* firebase_read(char *path)
 {
-    static char urlbuf[64] = {0};
     static char local_response_buffer[MAX_HTTP_OUTPUT_BUFFER] = {0};
 
     sprintf(urlbuf, "https://producto-1cba1-default-rtdb.firebaseio.com/%s.json", path);

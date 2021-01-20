@@ -20,7 +20,7 @@ static void display_task(void *arg);
 static void update_activity()
 {
     producto_activity_t activity = producto.activities[producto.current_activity];
-    
+
     TFT_fillRect(0,0,240,135/2, TFT_BLACK);
     TFT_print(activity.name, 0, 0);
 }
@@ -123,6 +123,7 @@ static void display_task(void *arg)
 	    break;
 
 	case DISPLAY_EVT_UPDATE_ACTIVITY:
+	    TFT_fillScreen(TFT_BLACK);
 	    update_activity();
 	    update_time();
 	    break;

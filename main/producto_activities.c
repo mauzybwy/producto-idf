@@ -18,8 +18,49 @@
 #include "producto_activities.h"
 #include "producto_display.h"
 #include "producto_buttons.h"
+#include "producto_firebase.h"
+
+#include "cJSON.h"
 
 extern producto_t producto;
+
+static char strbuf[16] = {0};
+void update_session_in_firebase(void)
+{
+    producto_activity_t *activity;
+    cJSON *sessions_root = cJSON_CreateObject();
+    cJSON *session_tasks = cJSON_CreateObject();
+
+    for (int i=0; i < PRODUCTO_NUM_ACTIVITY; i++)
+    {
+    	activity = &producto.activities[i];
+    	cJSON_AddNumberToObject(session_tasks, activity->name, activity->seconds);
+    }
+    
+    sprintf(strbuf, "%ld", producto.start_time);
+    cJSON_AddItemToObject(sessions_root, strbuf, session_tasks);
+    
+    firebase_write("sessions", sessions_root);
+
+    cJSON_Delete(sessions_root);
+}
+
+static void set_timers_from_firebase(void)
+{
+    cJSON *timers_root = NULL, *current_element = NULL;;
+    timers_root = firebase_read("timers");
+
+    for (int i = 0 ; i < cJSON_GetArraySize(timers_root) ; i++)
+    {
+	current_element = cJSON_GetArrayItem(timers_root, i);
+	if (cJSON_IsString(current_element)) {
+	    strcpy(producto.activities[i].name, current_element->valuestring);
+	    printf("%s\n", current_element->valuestring);
+	}
+    }
+
+    cJSON_Delete(timers_root);
+}
 
 static void handle_button_press(button_evt_t button_evt)
 {
@@ -41,6 +82,7 @@ static void handle_button_press(button_evt_t button_evt)
 	break;
 		
     case PRODUCTO_BUTTON_TYPE_PAUSE:
+	/* set_timers_from_firebase(); */
 	activity = &producto.activities[producto.current_activity];
 	activity->status = ( (activity->status == PRODUCTO_ACTIVITY_PAUSED)
 			     ? PRODUCTO_ACTIVITY_RUNNING
@@ -101,6 +143,14 @@ static void activities_task(void *arg)
 	    handle_second_tick();
 	    break;
 
+	case ACTIVITY_EVT_UPDATE_FIREBASE:
+	    update_session_in_firebase();
+	    break;
+
+	case ACTIVITY_EVT_SYNC_TIMER_NAMES:
+	    set_timers_from_firebase();
+	    break;
+
 	default:
 	    break;
 
@@ -110,5 +160,5 @@ static void activities_task(void *arg)
 
 void activities_init(void)
 {
-    xTaskCreate(activities_task, "activities_task", 2048, NULL, 5, NULL);
+    xTaskCreate(activities_task, "activities_task", 4096, NULL, 5, NULL);
 }

@@ -17,6 +17,8 @@
 #include "producto_firebase.h"
 #include "producto_activities.h"
 
+#include "cJSON.h"
+
 producto_t producto = {
     .activities = {
 	{
@@ -161,33 +163,6 @@ void producto_log(char *log)
     }
 }
 
-static void set_timers_from_firebase(void)
-{
-    cJSON *timers_root = NULL, *current_element = NULL;;
-    timers_root = firebase_read("timers");
-
-    for (int i = 0 ; i < cJSON_GetArraySize(timers_root) ; i++)
-    {
-	current_element = cJSON_GetArrayItem(timers_root, i);
-	if (cJSON_IsString(current_element)) {
-	    strcpy(producto.activities[i].name, current_element->valuestring);
-	    printf("%s\n", current_element->valuestring);
-	}
-    }
-
-    cJSON_Delete(timers_root);
-}
-
-void update_session_in_firebase(void)
-{
-    cJSON *timers_root = cJSON_CreateObject();
-    cJSON_AddStringToObject(timers_root, "1", "poop");
-    
-    firebase_write("timers", timers_root);
-    
-    cJSON_Delete(timers_root);
-}
-
 void set_start_time(void)
 {
     setenv("TZ", "GMT+5", 1);
@@ -196,6 +171,14 @@ void set_start_time(void)
     struct tm * timeinfo;
     timeinfo = localtime ( &producto.start_time );
     printf ( "Current local time and date: %s", asctime (timeinfo) );
+}
+
+static void download_timer_names(void)
+{
+    static activity_evt_t activity_evt;
+    activity_evt.type = ACTIVITY_EVT_SYNC_TIMER_NAMES;
+    
+    xQueueSend(producto.activity_evt_queue, &activity_evt, (TickType_t) 0);
 }
 
 
@@ -213,8 +196,6 @@ void app_main(void)
     set_start_time();
 
     producto_log("Connecting to firebase...");
-    update_session_in_firebase();
-    set_timers_from_firebase();
 
     producto_log("Initializing GPIO...");
     buttons_init();
@@ -224,6 +205,10 @@ void app_main(void)
 
     producto_log("Set up activities...");
     activities_init();
+
+    download_timer_names();
+
+    producto_log("READY");
 
     printf("Minimum free heap size: %d bytes\n", esp_get_minimum_free_heap_size());
 }

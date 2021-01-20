@@ -3,8 +3,10 @@
 
 void activities_init(void);
 
-#define ACTIVITY_EVT_BUTTON_PRESSED (0U)
-#define ACTIVITY_EVT_SECOND_TICK (1U)
+#define ACTIVITY_EVT_BUTTON_PRESSED   (0U)
+#define ACTIVITY_EVT_SECOND_TICK      (1U)
+#define ACTIVITY_EVT_UPDATE_FIREBASE  (2U)
+#define ACTIVITY_EVT_SYNC_TIMER_NAMES (3U)
 
 xQueueHandle activities_queue;
 
